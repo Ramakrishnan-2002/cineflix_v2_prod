@@ -89,7 +89,7 @@ async def update_user(request: Request, user_email: str, user: UserCreate, curre
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e))
 
 
-@router.patch("/update-email/{user_email}", status_code=status.HTTP_200_OK, response_model=UserResponse)
+@router.patch("/update-name/{user_email}", status_code=status.HTTP_200_OK, response_model=UserResponse)
 @limiter.limit("10/minute")
 async def update_user_name(request: Request, user_email: str, new_name: str, current_user: User = Depends(get_current_user)):
     try:

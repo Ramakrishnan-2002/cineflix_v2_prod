@@ -5,6 +5,7 @@ from ..middlewares.logger import get_logger
 from fastapi.responses import JSONResponse
 from ..schemas.movie_schemas import MovieBasic,MovieDetails,YoutubeTrailerResponse
 from ..services.youtube_trailer import get_trailer_from_youtube
+from ..middlewares.rate_limiter import limiter
 import requests
 
 
@@ -12,6 +13,7 @@ router= APIRouter(prefix="/movies", tags=["movies"])
 logger = get_logger(__name__)
 
 @router.get("/search/{movie_name}",status_code=status.HTTP_200_OK,response_model=list[MovieBasic])
+@limiter.limit("10/minute")
 async def search_movies(request : Request,movie_name:str,response:Response,current_user: str = Depends(get_current_user)):
     movies= await fetch_movie_list(movie_name,response)
     if not movies:
@@ -22,7 +24,8 @@ async def search_movies(request : Request,movie_name:str,response:Response,curre
 
 
 @router.get("/details",status_code=status.HTTP_200_OK,response_model=list[MovieDetails])
-async def get_full_movie_details(movie_url:str,current_user: str = Depends(get_current_user)):
+@limiter.limit("10/minute")
+async def get_full_movie_details(request : Request,movie_url:str,current_user: str = Depends(get_current_user)):
     if not movie_url.startswith("https://www.themoviedb.org/movie/"):
         logger.warning(f"Invalid movie URL provided: {movie_url}")
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid movie URL")
@@ -42,7 +45,8 @@ async def get_full_movie_details(movie_url:str,current_user: str = Depends(get_c
     
 
 @router.get("/trailer/{movie_name}",status_code=status.HTTP_200_OK,response_model=YoutubeTrailerResponse)
-async def get_movie_trailer(movie_name:str,current_user: str = Depends(get_current_user)):
+@limiter.limit("10/minute")
+async def get_movie_trailer(request : Request,movie_name:str,current_user: str = Depends(get_current_user)):
    
     trailer_url = await get_trailer_from_youtube(movie_name)
     if "Error" in trailer_url or "No trailer found" in trailer_url:
@@ -53,7 +57,8 @@ async def get_movie_trailer(movie_name:str,current_user: str = Depends(get_curre
 
 
 @router.get("/popular",status_code=status.HTTP_200_OK,response_model=list[MovieBasic])
-async def get_popular_movies(current_user: str = Depends(get_current_user)):
+@limiter.limit("10/minute")
+async def get_popular_movies(request : Request,current_user: str = Depends(get_current_user)):
     movies= await fetch_all_movies_by_category("popular", "https://www.themoviedb.org/movie")
     if not movies:
         logger.info("No popular movies found")
@@ -63,7 +68,8 @@ async def get_popular_movies(current_user: str = Depends(get_current_user)):
 
 
 @router.get("/upcoming",status_code=status.HTTP_200_OK,response_model=list[MovieBasic])
-async def get_upcoming_movies(current_user: str = Depends(get_current_user)):
+@limiter.limit("10/minute")
+async def get_upcoming_movies(request : Request,current_user: str = Depends(get_current_user)):
     movies= await fetch_all_movies_by_category("upcoming", "https://www.themoviedb.org/movie/upcoming")
     if not movies:
         logger.info("No upcoming movies found")
@@ -74,7 +80,8 @@ async def get_upcoming_movies(current_user: str = Depends(get_current_user)):
 
 
 @router.get("/toprated",status_code=status.HTTP_200_OK,response_model=list[MovieBasic])
-async def get_top_rated_movies(current_user: str = Depends(get_current_user)):
+@limiter.limit("10/minute")
+async def get_top_rated_movies(request : Request,current_user: str = Depends(get_current_user)):
     movies= await fetch_all_movies_by_category("top_rated", "https://www.themoviedb.org/movie/top-rated")
     if not movies:
         logger.info("No top-rated movies found")

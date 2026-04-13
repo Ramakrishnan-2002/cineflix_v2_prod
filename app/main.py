@@ -1,9 +1,10 @@
 from fastapi import FastAPI
 from .databases.database import init_db 
 from contextlib import asynccontextmanager
-from .routers import users,auth,reviews,movies
+from .routers import users,auth,reviews,movies,mail
 from .middlewares.idempotency import init_redis, close_redis
 from .middlewares.logger import get_logger
+from fastapi.middleware.cors import CORSMiddleware
 
 logger=get_logger(__name__)
 
@@ -22,6 +23,14 @@ async def lifespan(app: FastAPI):
 
 app=FastAPI(title="My Cineflix Application",tags=["health"],lifespan=lifespan)
 
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"], 
+    allow_headers=["*"]
+)
+
 @app.get("/health")
 async def health():
     return {"status": "ok"} 
@@ -30,3 +39,4 @@ app.include_router(users.router)
 app.include_router(auth.router)
 app.include_router(reviews.router)
 app.include_router(movies.router)
+app.include_router(mail.router)
