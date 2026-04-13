@@ -28,4 +28,4 @@ async def health():
 
 app.include_router(users.router)
 app.include_router(auth.router)
-# app.include_router(reviews.router)
+app.include_router(reviews.router)
