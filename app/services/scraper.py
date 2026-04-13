@@ -119,7 +119,6 @@ def get_movie_details(movie_url):
 
 
 def fetch_backdrop_images(movie_url):
-    """Fetch backdrop images from TMDB movie image gallery with JSON error handling."""
     logger.info(f"Fetching backdrop images for movie URL: {movie_url}")
     backdrop_url = movie_url.replace("?language=en-GB", "") + "/images/backdrops?language=en-GB"
 
