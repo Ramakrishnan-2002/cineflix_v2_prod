@@ -1,7 +1,7 @@
 from fastapi import FastAPI
 from .databases.database import init_db 
 from contextlib import asynccontextmanager
-from .routers import users,auth,reviews
+from .routers import users,auth,reviews,movies
 from .middlewares.idempotency import init_redis, close_redis
 from .middlewares.logger import get_logger
 
@@ -29,3 +29,4 @@ async def health():
 app.include_router(users.router)
 app.include_router(auth.router)
 app.include_router(reviews.router)
+app.include_router(movies.router)

@@ -8,14 +8,18 @@ from ..middlewares.logger import get_logger
 
 logger = get_logger(__name__)
 
-
+HEADERS = {
+    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
+    "Accept-Language": "en-GB,en;q=0.9",
+    "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8"
+}
 
 def fetch_movie_list(movie_name: str,response:Response): 
     logger.info(f"Fetching movie list for: {movie_name}")
     url = f"https://www.themoviedb.org/search/movie?query={movie_name}&language=en-GB"
 
     try:
-        response = requests.get(url, timeout=10)
+        response = requests.get(url,headers=HEADERS, timeout=10)
         response.raise_for_status()
     except requests.Timeout:
         logger.error(f"Request to TMDB timed out for movie: {movie_name}")
@@ -51,7 +55,7 @@ def fetch_movie_list(movie_name: str,response:Response):
     return movies  # Return the fetched movies
 
 
-def get_movie_details(movie_url):
+async def get_movie_details(movie_url):
     logger.info(f"Fetching movie details for URL: {movie_url}")
     try:
         response = requests.get(movie_url, timeout=10)
@@ -118,7 +122,7 @@ def get_movie_details(movie_url):
     }
 
 
-def fetch_backdrop_images(movie_url):
+async def fetch_backdrop_images(movie_url):
     logger.info(f"Fetching backdrop images for movie URL: {movie_url}")
     backdrop_url = movie_url.replace("?language=en-GB", "") + "/images/backdrops?language=en-GB"
 
@@ -136,7 +140,7 @@ def fetch_backdrop_images(movie_url):
         return {"error": "Failed to fetch backdrop images"}
 
 
-def fetch_watch_links(streaming_url):
+async def fetch_watch_links(streaming_url):
     logger.info(f"Fetching watch links for streaming URL: {streaming_url}")
     try:
         response = requests.get(streaming_url, timeout=10)
