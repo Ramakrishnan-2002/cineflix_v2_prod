@@ -1,6 +1,5 @@
 from bs4 import BeautifulSoup
 from fastapi import HTTPException,Response
-import httpx
 import requests
 import re
 import urllib.parse
@@ -14,13 +13,12 @@ HEADERS = {
     "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8"
 }
 
-def fetch_movie_list(movie_name: str,response:Response): 
+async def fetch_movie_list(movie_name: str,response:Response): 
     logger.info(f"Fetching movie list for: {movie_name}")
     url = f"https://www.themoviedb.org/search/movie?query={movie_name}&language=en-GB"
-
     try:
-        response = requests.get(url,headers=HEADERS, timeout=10)
-        response.raise_for_status()
+        tmdb_response = requests.get(url,headers=HEADERS, timeout=10)
+        tmdb_response.raise_for_status()
     except requests.Timeout:
         logger.error(f"Request to TMDB timed out for movie: {movie_name}")
         raise HTTPException(status_code=504, detail="Request to TMDB timed out")
@@ -28,20 +26,15 @@ def fetch_movie_list(movie_name: str,response:Response):
         logger.error(f"Error fetching movie list for {movie_name}: {str(e)}")
         raise HTTPException(status_code=502, detail=f"Error fetching movie list: {str(e)}")
 
-    soup = BeautifulSoup(response.text, 'html.parser')
-    movies = []
+    soup = BeautifulSoup(tmdb_response.text, 'html.parser')
+    movies=[]
+    for card in soup.select('div[class*="media-card"]'):
+        movie_link = card.select_one('a[data-media-type="movie"]')
 
-    for card in soup.select('div.card.v4.tight'):
-        movie_link = card.select_one('a.result')
         if not movie_link:
             continue
-        href = movie_link['href']
-        
-        # Skip TV shows
-        if href.startswith("/tv/"):
-            continue
 
-
+        href = movie_link.get('href')
         movie_url = f"https://www.themoviedb.org{href}"
 
         movies.append({
@@ -52,7 +45,7 @@ def fetch_movie_list(movie_name: str,response:Response):
             "url": movie_url,
         })
 
-    return movies  # Return the fetched movies
+    return movies  
 
 
 async def get_movie_details(movie_url):
@@ -103,9 +96,9 @@ async def get_movie_details(movie_url):
 
     watch_link_element = soup.select_one('a[href*="/watch"]')
     streaming_url = f"https://www.themoviedb.org{watch_link_element['href']}" if watch_link_element else "No watch link available"
-    watch_links = fetch_watch_links(streaming_url) if watch_link_element else ["No watch links available"]
+    watch_links = await fetch_watch_links(streaming_url) if watch_link_element else ["No watch links available"]
 
-    backdrops = fetch_backdrop_images(movie_url)
+    backdrops = await fetch_backdrop_images(movie_url)
     overview_element = soup.select_one('div.overview p')
     overview = overview_element.get_text(strip=True) if overview_element else "No overview available"
 
@@ -167,35 +160,41 @@ async def fetch_watch_links(streaming_url):
         return {"error": "Failed to fetch watch links"}
 
 
-async def fetch_movies_from_page(client, page, base_url):
-    logger.info(f"Fetching movies from page {page} with base URL: {base_url}")
-    url = f"{base_url}?page={page}&language=en-GB"
-    
-    try:
-        response = await client.get(url, timeout=10)
-        response.raise_for_status()
-    except httpx.HTTPStatusError as e:
-        logger.error(f"HTTP error fetching page {page}: {e}")
-        raise HTTPException(status_code=e.response.status_code, detail=f"Error fetching page {page}: {e}")
-    except httpx.RequestError as e:
-        logger.error(f"Request error fetching page {page}: {e}")
-        raise HTTPException(status_code=500, detail=f"Request error: {e}")
-    
-    soup = BeautifulSoup(response.text, "html.parser")
 
+
+async def fetch_all_movies_by_category(category: str, base_url: str, response: Response = None):
+    logger.info(f"Fetching {category} movie list")
+    url = base_url
+    try:
+        tmdb_response = requests.get(url, headers=HEADERS, timeout=10)
+        tmdb_response.raise_for_status()
+    except requests.Timeout:
+        logger.error(f"Request to TMDB timed out for {category} movies")
+        raise HTTPException(status_code=504, detail="Request to TMDB timed out")
+    except requests.RequestException as e:
+        logger.error(f"Error fetching {category} movie list: {str(e)}")
+        raise HTTPException(status_code=502, detail=f"Error fetching movie list: {str(e)}")
+
+    soup = BeautifulSoup(tmdb_response.text, 'html.parser')
     movies = []
-    for card in soup.select("div.card.style_1"):
-        title = card.select_one("h2").get_text(strip=True) if card.select_one("h2") else "Unknown"
-        release_date = card.select_one("div.content p").text if card.select_one("div.content p") else "Unknown"
-        poster = card.select_one("img")["src"] if card.select_one("img") else "No poster available"
-        movie_link = card.select_one("a")["href"] if card.select_one("a") else None
-        movie_url = f"https://www.themoviedb.org{movie_link}" if movie_link else "No URL available"
+    for card in soup.select('div[class*="poster-card"]'):
+        movie_link = card.select_one('a[data-media-type="movie"]')
+        if not movie_link:
+            continue
+        href = movie_link.get('href')
+        movie_url = f"https://www.themoviedb.org{href}"
+        img_tag = card.select_one('img.poster')
+        title = img_tag.get('alt') if img_tag else "Unknown"
+        poster = img_tag.get('src') if img_tag else "No poster available"
+        release_date_tag = card.select_one('span.subheader') or card.select_one('span.release_date')
+        overview_tag = card.select_one('div.overview p')
 
         movies.append({
             "title": title,
-            "release_date": release_date,
             "poster": poster,
-            "url": movie_url
+            "release_date": release_date_tag.get_text(strip=True) if release_date_tag else "Unknown",
+            "overview": overview_tag.get_text(strip=True) if overview_tag else "Overview not available",
+            "url": movie_url,
         })
 
     return movies
