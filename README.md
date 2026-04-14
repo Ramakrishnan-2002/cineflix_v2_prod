@@ -26,8 +26,6 @@ A robust, production-ready backend for a movie and review platform built with **
 │   ├── schemas/         # Pydantic models for request/response validation
 │   ├── services/        # Business logic (e.g., email_service.py)
 │   └── main.py          # FastAPI application entry point & lifespan events
-├── core/                # Core configurations (e.g., Pydantic BaseSettings)
-├── nginx/               # Nginx configuration (if using API Gateway/Microservices)
 ├── .env.example         # Template for environment variables
 ├── docker-compose.yml   # Infrastructure orchestration
 ├── Dockerfile           # Multi-stage container build instructions
