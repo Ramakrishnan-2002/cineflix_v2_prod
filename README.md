@@ -91,3 +91,39 @@ The easiest way to run the entire stack (API, MongoDB, Mongo-Express UI, and Red
 
 ## 🔑 Note on Gmail App Passwords
 To use the email service (Password Reset), you must generate a 16-character App Password from your Google Account. Regular account passwords will result in a `535 Authentication Error`. Do not include spaces in the App Password inside your `.env` file.
+
+"""
+
+env_content = """# ==========================================
+
+DATABASE & CACHE
+==========================================
+When running locally, use 'localhost'.
+When running via Docker Compose, use the container names ('mongo' and 'redis').
+MONGO_URL="mongodb://root:root@localhost:27017/movie_db?authSource=admin"
+REDIS_URL="redis://localhost:6379/0"
+
+==========================================
+SECURITY & AUTHENTICATION
+==========================================
+SECRET_KEY="your_super_secret_string_here"
+ALGORITHM="HS256"
+ACCESS_TOKEN_EXPIRE_MINUTES=30
+
+==========================================
+EMAIL CONFIGURATION (FASTAPI-MAIL)
+==========================================
+Note: Use your full email address and a 16-character Google App Password (no spaces)
+MAIL_USERNAME="your.email@gmail.com"
+MAIL_PASSWORD="your_16_character_app_password"
+MAIL_FROM="your.email@gmail.com"
+MAIL_FROM_NAME="CineFlix"
+MAIL_PORT=587
+MAIL_SERVER="smtp.gmail.com"
+
+==========================================
+EXTERNAL APIS
+==========================================
+YOUTUBE_API_KEY="your_youtube_data_api_v3_key"
+YOUTUBE_API_URL="https://www.googleapis.com/youtube/v3/search"
+"""
