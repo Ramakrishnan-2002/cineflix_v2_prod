@@ -1,5 +1,20 @@
 version: '3.9'
 services:
+  cineflix:
+    build : .
+    container_name: cineflix
+    ports:
+      - "8000:8000"
+    restart: always
+    env_file:
+      - .env
+    environment:
+      - MONGO_URL=mongodb://root:root@mongo:27017/movie_db?authSource=admin
+      - REDIS_URL=redis://redis:6379/0
+    depends_on:
+      - mongo
+      - mongo-express
+      - redis
   mongo:
     image: mongo:7
     container_name: mongo_db
